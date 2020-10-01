@@ -248,7 +248,7 @@ data = pd.concat([data, raw_sent_df, lemmed_sent_df], axis=1)
 data.to_csv("all_data.csv")
 data[:]
 
-#%% Doughnut plot of sentiment
+#%% Doughnut plot of raw sentiment
 # Data
 neg_sum = data['raw_neg'].sum()
 neu_sum = data['raw_neu'].sum()
@@ -281,7 +281,43 @@ for i, p in enumerate(wedges):
         ax.annotate(labels[i]+' '+str(sent_prop[i])+'%', xy=(x, y), xytext=(1.35*np.sign(x), 1.4*y),\
                     horizontalalignment=horizontalalignment, **kw)
         
-ax.set_title("Overall Sentiment")
+ax.set_title("Overall Raw Sentiment")
+plt.show()
+
+#%% Doughnut plot of cleaned
+# Data
+neg_sum = data['cleaned_neg'].sum()
+neu_sum = data['cleaned_neu'].sum()
+pos_sum = data['cleaned_pos'].sum()
+tot = neg_sum + neu_sum + pos_sum
+sent_prop = [round((neg_sum/tot)*100, 2), round((neu_sum/tot)*100, 2), round((pos_sum/tot)*100, 2)]
+
+#%% Doughnut plot
+fig, ax = plt.subplots(figsize=(6, 3), subplot_kw=dict(aspect="equal"))
+
+labels = ["Negative","Neutral","Positive"]
+
+wedges, texts = ax.pie(sent_prop, wedgeprops=dict(width=0.5), startangle=-40)
+
+bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
+kw = dict(arrowprops=dict(arrowstyle="-"),
+          bbox=bbox_props, zorder=0, va="center")
+
+for i, p in enumerate(wedges):
+    ang = (p.theta2 - p.theta1)/2. + p.theta1
+    y = np.sin(np.deg2rad(ang))
+    x = np.cos(np.deg2rad(ang))
+    horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+    connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+    kw["arrowprops"].update({"connectionstyle": connectionstyle})
+    if labels[i] == 'Negative':
+        ax.annotate(labels[i]+' '+str(sent_prop[i])+'%', xy=(x, y), xytext=(1.35*np.sign(x), y),\
+                    horizontalalignment=horizontalalignment, **kw)
+    else:
+        ax.annotate(labels[i]+' '+str(sent_prop[i])+'%', xy=(x, y), xytext=(1.35*np.sign(x), 1.4*y),\
+                    horizontalalignment=horizontalalignment, **kw)
+        
+ax.set_title("Overall Cleaned Sentiment")
 plt.show()
 
 #%% Hist of raw compound scores
@@ -303,15 +339,15 @@ hist_plot(data['cleaned_compound'], 'Cleaned Statements') # All senitment lemmat
 import seaborn as sns
 def density_plot(df, title):
     fig = plt.subplots(figsize=(7, 7))
-    sns.kdeplot(df, shade='True', color='k', edgecolor='k')
+    sns.kdeplot(df, shade='True', color='k', legend=False)
     plt.xlim(-1, 1)
-    plt.ylabel('Number of Statements', fontsize=30)
+    plt.ylim(0, 1)
+    plt.ylabel('Probability of Sentiment', fontsize=30)
     plt.xticks([-1, 0, 1], fontsize=18, labels=['Negative', 'Neutral', 'Positive'])
     plt.yticks(fontsize=18)
     plt.title(title, fontsize=24)
     plt.show()
 
 #%% Sentiment plots
-density_plot((dfdata['raw_compound'], title='Raw Input')
-#sns.plt.show()
-
+density_plot(data['raw_compound'], title='Raw Input')
+density_plot(data['cleaned_compound'], title='Cleaned Input')
