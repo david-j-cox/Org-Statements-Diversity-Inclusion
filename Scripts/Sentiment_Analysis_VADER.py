@@ -28,104 +28,6 @@ raw_data = pd.read_csv('all_data.csv').drop(['Unnamed: 0'], axis=1)
 data = raw_data.copy()
 data
 
-#%% It looks like bot code is enclosed by '[{...}]'. Let's remove these from the df
-cleaned_interaction = []
-
-for i in list(range(len(data))):
-    string = data['Interaction'][i]
-    if string == "\"/Expire Session\"":
-        string = 'delete_expired_session'
-    
-    # Cleaning up the front
-    if string[0:6] == "{\"text":
-        str_start = string.find("ext\":") + 6
-        str_end = string.find("[{")
-        string = string[str_start:str_end]
-    if string[0] =="\"":
-        string = string[1:]
-    if string[0] =="\\":
-        string = string[2:]
-    if string[0:2]=="\\n":
-        string = string[2:]
-    if string[0] == "/":
-        string = string[1:]
-    if string[-1] =="\"":
-        string = string[0:-1]
-    if string[0:7]=="Initial":
-        str_start = string.find(":") + 5
-        string = string[str_start:-3]
-    if string[0:2]== '[{':
-        str_start = string.find("\"text\":") + 9
-        string = string[str_start:-11]
-    if string[0:16] == "Did you mean:\"[{":
-        string = string[0:13]
-    if string[0:5] == "<b>Hi":
-        str_start = string.find("Hi")
-        str_end = string.find("ion:") + 3
-        string = string[str_start:str_end]
-    
-    # Cleaning up the middle
-    if "\\n" in string:
-        new_string = string.replace('\\n', '')
-        string = new_string
-    if "\\" in string:
-        new_string = string.replace('\\', '')
-        string = new_string
-    if "links\":" in string:
-        str_end = string.find("\",")
-        string = string[0:str_end]
-    if "\"buttons\":" in string:
-        str_start = string.find("\"buttons\":") - 3
-        str_pickup = str_start + 14
-        string = string[0:str_start] + string[str_pickup:]
-    if "u00ae" in string:
-        str_start = string.find("u00ae")
-        str_pickup = str_start + 5
-        string = string[0:str_start] + string[str_pickup:]
-    if "<b>" in string:
-        new_string = string.replace('<b>', '')
-        string = new_string
-    if "  <live chat icon> " in string:
-        str_start = string.find("  <live chat icon> ")
-        string = string[0:str_start]
-    if "</b>" in string:
-        new_string = string.replace("</b>", '')
-        string = new_string
-    if "</b>r" in string:
-        str_start = string.find("</b>r")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[001]" in string:
-        str_start = string.find("[001]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[002]" in string:
-        str_start = string.find("[002]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[003]" in string:
-        str_start = string.find("[003]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    
-    # Cleaning up the end      
-    if string.endswith("}]"):
-        str_end = string.find("[{\"payload")
-        string = string[0:str_end]
-    if string.endswith("\""):
-        string = string[0:-1]
-    if string.endswith("\"."):
-        string = string[0:-2]
-    
-    # Append cleaned string to list
-    cleaned_interaction.append(string)
-
-cleaned_interaction = pd.DataFrame(cleaned_interaction, columns=['cleaned_string'])
-cleaned_interaction[::1000]
-
-#%% Add new col to df
-data['cleaned_interaction'] = cleaned_interaction
-
 #%% DATA PRE-PROCESSING 
 # Pre-process our data. Goal is to have:
 #       (1) Single list where each item in the list is the raw string of the narrative for that participant. 
@@ -321,23 +223,18 @@ plt.margins(x=0, y=0)
 plt.show()
 
 #%% Just top 100 words. 
-wordcloud = WordCloud(width=500, height=500, background_color='black', max_words=50).generate(narr_all_words) 
+wordcloud = WordCloud(width=500, height=500, background_color='white', max_words=50).generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
 plt.margins(x=0, y=0)
 plt.show()
 
-#%% Create cumulative frequency distribution of top 30 words
-import matplotlib as plt
-fdist = nltk.FreqDist(plot_words)
-fdist.plot(30, cumulative = False, marker='o', color='k')
-
 #%% Sentiment Analysis on the raw input
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 raw_sentiment_score = []
 
-for sentence in data['Interaction']:
+for sentence in data['body_text']:
     ss = SentimentIntensityAnalyzer().polarity_scores(sentence)
     raw_sentiment_score.append(ss)
 
@@ -345,18 +242,6 @@ raw_sent_df = pd.DataFrame(raw_sentiment_score)
 raw_sent_df = raw_sent_df.rename(columns={'neg':'raw_neg', 'neu':'raw_neu', \
                                   'pos':'raw_pos', 'compound':'raw_compound'})
 raw_sent_df
-
-#%% Sentiment Analysis on the raw sentences with garbage removed
-cleaner_sentiment_score = []
-
-for sentence in narratives:
-    ss = SentimentIntensityAnalyzer().polarity_scores(sentence)
-    cleaner_sentiment_score.append(ss)
-
-cleaner_sent_df = pd.DataFrame(cleaner_sentiment_score)
-cleaner_sent_df = cleaner_sent_df.rename(columns={'neg':'cleaner_neg', 'neu':'cleaner_neu', \
-                                  'pos':'cleaner_pos', 'compound':'cleaner_compound'})
-cleaner_sent_df
 
 #%% Sentiment Analysis on the lemmatized and cleaned sentences
 lemmed_sentiment_score = []
@@ -366,20 +251,20 @@ for sentence in clean_ind_narr:
     lemmed_sentiment_score.append(ss)
 
 lemmed_sent_df = pd.DataFrame(lemmed_sentiment_score)
-lemmed_sent_df = lemmed_sent_df.rename(columns={'neg':'lemmed_neg', 'neu':'lemmed_neu', \
-                                  'pos':'lemmed_pos', 'compound':'lemmed_compound'})
+lemmed_sent_df = lemmed_sent_df.rename(columns={'neg':'cleaned_neg', 'neu':'cleaned_neu', \
+                                  'pos':'cleaned_pos', 'compound':'cleaned_compound'})
 lemmed_sent_df
 
 #%% Add the above to the data df
-data = pd.concat([data, raw_sent_df, cleaner_sent_df, lemmed_sent_df], axis=1)
+data = pd.concat([data, raw_sent_df, lemmed_sent_df], axis=1)
 data.to_csv("all_data.csv")
-data[::100]
+data[:]
 
 #%% Doughnut plot of sentiment
 # Data
-neg_sum = sent_df['raw_neg'].sum()
-neu_sum = sent_df['raw_neu'].sum()
-pos_sum = sent_df['raw_pos'].sum()
+neg_sum = data['raw_neg'].sum()
+neu_sum = data['raw_neu'].sum()
+pos_sum = data['raw_pos'].sum()
 tot = neg_sum + neu_sum + pos_sum
 sent_prop = [round((neg_sum/tot)*100, 2), round((neu_sum/tot)*100, 2), round((pos_sum/tot)*100, 2)]
 
@@ -414,31 +299,14 @@ plt.show()
 #%% Hist of raw compound scores
 def hist_plot(df, title):
     fig = plt.subplots(figsize=(7, 7))
-    plt.hist(df, bins=15, color='#009FAE', edgecolor='k')
-    plt.yscale('log')
+    plt.hist(df, bins=5, color='k', edgecolor='k')
     plt.xlim(-1, 1)
-    plt.ylabel('Number of User Inputs', fontsize=30)
+    plt.ylabel('Number of Statements, fontsize=30')
     plt.xticks([-1, 0, 1], fontsize=18, labels=['Negative', 'Neutral', 'Positive'])
     plt.yticks(fontsize=18)
     plt.title(title, fontsize=24)
-    plt.yticks([1, 10, 100, 1000, 10000], fontsize=18, labels=['', '10', '100', '1000', '10000'])
     plt.show()
 
 #%% All sentiment
 hist_plot(data['raw_compound'], 'Raw Input: All') # All sentiment raw
-hist_plot(data['cleaner_compound'], 'Cleaner Input: All') # All senitment cleaner
-hist_plot(data['lemmed_compound'], 'Lemmatized Input: All') # All senitment lemmatized
-
-#%% Separate into just user and just bot plots
-user_data = data.loc[data['type_name']=='user']
-bot_data = data.loc[data['type_name']=='bot']
-
-# Plot user
-hist_plot(user_data['raw_compound'], 'Raw Input: User') # All sentiment raw
-hist_plot(user_data['cleaner_compound'], 'Cleaner Input: User') # All senitment cleaner
-hist_plot(user_data['lemmed_compound'], 'Lemmatized Input: User') # All senitment lemmatized
-
-# Plot bot
-hist_plot(bot_data['raw_compound'], 'Raw Input: Bot') # All sentiment raw
-hist_plot(bot_data['cleaner_compound'], 'Cleaner Input: Bot') # All senitment cleaner
-hist_plot(bot_data['lemmed_compound'], 'Lemmatized Input: Bot') # All senitment lemmatized
+hist_plot(data['cleaned_compound'], 'Lemmatized Input: All') # All senitment lemmatized
