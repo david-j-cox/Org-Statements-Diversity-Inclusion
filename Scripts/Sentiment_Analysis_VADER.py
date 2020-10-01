@@ -198,18 +198,6 @@ narrative_vocab             # Single list of the vocabulary used throughout all 
 narr_as_string              # Single item of all narratives as a string of the cleaned narratives. 
 clean_ind_narr              # Single list where each item in the list is a string of the participant narratives with only clean words.
 
-#%% Create wordcloud 
-# remove troubelsome words/phrases
-plot_words = []
-
-for i in narratives_word_list:
-    if i in trouble_list:
-        pass
-    else:
-        plot_words.append(i)
-
-plot_words = ' '.join(plot_words)
-
 #%%        
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -222,7 +210,7 @@ plt.axis("off")
 plt.margins(x=0, y=0)
 plt.show()
 
-#%% Just top 100 words. 
+#%% Just top 50 words. 
 wordcloud = WordCloud(width=500, height=500, background_color='white', max_words=50).generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
@@ -299,14 +287,31 @@ plt.show()
 #%% Hist of raw compound scores
 def hist_plot(df, title):
     fig = plt.subplots(figsize=(7, 7))
-    plt.hist(df, bins=5, color='k', edgecolor='k')
+    plt.hist(df, color='k', edgecolor='k')
     plt.xlim(-1, 1)
-    plt.ylabel('Number of Statements, fontsize=30')
+    plt.ylabel('Number of Statements', fontsize=30)
     plt.xticks([-1, 0, 1], fontsize=18, labels=['Negative', 'Neutral', 'Positive'])
     plt.yticks(fontsize=18)
     plt.title(title, fontsize=24)
     plt.show()
 
-#%% All sentiment
-hist_plot(data['raw_compound'], 'Raw Input: All') # All sentiment raw
-hist_plot(data['cleaned_compound'], 'Lemmatized Input: All') # All senitment lemmatized
+#%% Hist plots
+hist_plot(data['raw_compound'], 'Raw Statements') # All sentiment raw
+hist_plot(data['cleaned_compound'], 'Cleaned Statements') # All senitment lemmatized
+
+#%% Density plot with shade
+import seaborn as sns
+def density_plot(df, title):
+    fig = plt.subplots(figsize=(7, 7))
+    sns.kdeplot(df, shade='True', color='k', edgecolor='k')
+    plt.xlim(-1, 1)
+    plt.ylabel('Number of Statements', fontsize=30)
+    plt.xticks([-1, 0, 1], fontsize=18, labels=['Negative', 'Neutral', 'Positive'])
+    plt.yticks(fontsize=18)
+    plt.title(title, fontsize=24)
+    plt.show()
+
+#%% Sentiment plots
+density_plot((dfdata['raw_compound'], title='Raw Input')
+#sns.plt.show()
+
