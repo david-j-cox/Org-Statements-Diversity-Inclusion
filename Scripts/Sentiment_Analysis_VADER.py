@@ -15,123 +15,18 @@ import numpy as np
 import sys
 import re, string, unicodedata
 import matplotlib.pyplot as plt
-sys.path.append('Users/davidjcox/Dropbox/Coding/Local Python Modules/')
+sys.path.append('/Users/davidjcox/Dropbox/Coding/Local Python Modules/')
 
 # Set path to data
-os.chdir('Users/davidjcox/Dropbox/Projects/CurrentProjectManuscripts/Empirical/PersonalFun/Org_Statements_Diversity/Org-Statements-Diversity-Inclusion/Data/')
+os.chdir('/Users/davidjcox/Dropbox/Projects/CurrentProjectManuscripts/Empirical/PersonalFun/Org_Statements_Diversity/Org-Statements-Diversity-Inclusion/Data')
 
 # Change settings to view all columns of data
 pd.set_option('display.max_columns', None)
 
 #%% Import data.
-raw_data = pd.read_csv('data_for_sentiment_analysis.csv', low_memory=False) #All data.
+raw_data = pd.read_csv('all_data.csv').drop(['Unnamed: 0'], axis=1)
 data = raw_data.copy()
-bot_data = data[data['type_name']=='bot']
-bot_data = bot_data.reset_index()
-bot_data = bot_data.drop(['index'], axis=1)
-user_data = data[data['type_name']=='user']
-user_data = user_data.reset_index()
-user_data = user_data.drop(['index'], axis=1)
-print("User Data\n", user_data.head())
-print("Bot Data\n", bot_data.head())
-
-#%% It looks like bot code is enclosed by '[{...}]'. Let's remove these from the df
-cleaned_interaction = []
-
-for i in list(range(len(data))):
-    string = data['Interaction'][i]
-    if string == "\"/Expire Session\"":
-        string = 'delete_expired_session'
-    
-    # Cleaning up the front
-    if string[0:6] == "{\"text":
-        str_start = string.find("ext\":") + 6
-        str_end = string.find("[{")
-        string = string[str_start:str_end]
-    if string[0] =="\"":
-        string = string[1:]
-    if string[0] =="\\":
-        string = string[2:]
-    if string[0:2]=="\\n":
-        string = string[2:]
-    if string[0] == "/":
-        string = string[1:]
-    if string[-1] =="\"":
-        string = string[0:-1]
-    if string[0:7]=="Initial":
-        str_start = string.find(":") + 5
-        string = string[str_start:-3]
-    if string[0:2]== '[{':
-        str_start = string.find("\"text\":") + 9
-        string = string[str_start:-11]
-    if string[0:16] == "Did you mean:\"[{":
-        string = string[0:13]
-    if string[0:5] == "<b>Hi":
-        str_start = string.find("Hi")
-        str_end = string.find("ion:") + 3
-        string = string[str_start:str_end]
-    
-    # Cleaning up the middle
-    if "\\n" in string:
-        new_string = string.replace('\\n', '')
-        string = new_string
-    if "\\" in string:
-        new_string = string.replace('\\', '')
-        string = new_string
-    if "links\":" in string:
-        str_end = string.find("\",")
-        string = string[0:str_end]
-    if "\"buttons\":" in string:
-        str_start = string.find("\"buttons\":") - 3
-        str_pickup = str_start + 14
-        string = string[0:str_start] + string[str_pickup:]
-    if "u00ae" in string:
-        str_start = string.find("u00ae")
-        str_pickup = str_start + 5
-        string = string[0:str_start] + string[str_pickup:]
-    if "<b>" in string:
-        new_string = string.replace('<b>', '')
-        string = new_string
-    if "  <live chat icon> " in string:
-        str_start = string.find("  <live chat icon> ")
-        string = string[0:str_start]
-    if "</b>" in string:
-        new_string = string.replace("</b>", '')
-        string = new_string
-    if "</b>r" in string:
-        str_start = string.find("</b>r")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[001]" in string:
-        str_start = string.find("[001]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[002]" in string:
-        str_start = string.find("[002]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    if "[003]" in string:
-        str_start = string.find("[003]")
-        str_pickup = str_start + 6
-        string = string[0:str_start] + string[str_pickup:]
-    
-    # Cleaning up the end      
-    if string.endswith("}]"):
-        str_end = string.find("[{\"payload")
-        string = string[0:str_end]
-    if string.endswith("\""):
-        string = string[0:-1]
-    if string.endswith("\"."):
-        string = string[0:-2]
-    
-    # Append cleaned string to list
-    cleaned_interaction.append(string)
-
-cleaned_interaction = pd.DataFrame(cleaned_interaction, columns=['cleaned_string'])
-cleaned_interaction[::1000]
-
-#%% Add new col to df
-data['cleaned_interaction'] = cleaned_interaction
+data
 
 #%% DATA PRE-PROCESSING 
 # Pre-process our data. Goal is to have:
@@ -156,7 +51,7 @@ data['cleaned_interaction'] = cleaned_interaction
 
 #%% Start with (1) narratives:
 #   Single list where each item in the list is the raw string of the narrative for that participant. 
-narratives = data['cleaned_interaction'] # Create a list of the narratives.
+narratives = data['body_text'] # Create a list of the narratives.
 
 #%% Next we'll get (2), narratives_sent_tokenized:
 #     List of lists with one list per subject, and each item in list is a sentence from their narrative. 
@@ -254,7 +149,7 @@ for list in stem_narratives:
 
 narr_all_words = ' '.join(narratives_word_list)
 
-len(narratives_word_list) # Should be 70,616 total words.
+len(narratives_word_list) # Should be 4038 total words.
 
 #%% Next we'll get (5) narrative_vocab:
 #   Single list of the vocabulary used throughout all narratives (i.e., omitting all redundancies from (4)).
@@ -266,7 +161,7 @@ narrative_vocab = []
 for word in narratives_word_list:
     if word not in narrative_vocab:
         narrative_vocab.append(word)
-print("Number of words in vocab:", len(narrative_vocab)) # Should be 1521 unique words in our vocab. 
+print("Number of words in vocab:", len(narrative_vocab)) # Should be 1373 unique words in our vocab. 
 sorted_vocab = sorted(narrative_vocab)
 unique_words = np.unique(sorted_vocab) # Look at every 100th word in the vocab set. 
 
@@ -278,8 +173,8 @@ narr_as_string = []
 
 # Join all of the words into single string. 
 narr_as_string = ' '.join(narratives_word_list)
-print("Number of characters total:", len(narr_as_string)) # Should be 119,120 characters in this string. 
-narr_as_string[:198] # Look at the first 198 characters of this string. 
+print("Number of characters total:", len(narr_as_string)) # Should be 31,973 characters in this string. 
+narr_as_string[:198] # Look at the first 300 characters of this string. 
 
 #%% Finally, we'll get (7) clean_ind_narr:
 #     Single list where each item in the list is a string of the participant narratives with only clean words. 
@@ -288,7 +183,7 @@ for list in clean_words_tokenized:
     sub_clean_narr = ' '.join(list)
     clean_ind_narr.append(sub_clean_narr)
 data['cleaned_sentences'] = clean_ind_narr
-print("Number of total user inputs", len(clean_ind_narr))
+print("Number of total statements", len(clean_ind_narr))
 print(clean_ind_narr[::500])
 
 #%% ===========================================================================
@@ -306,8 +201,7 @@ clean_ind_narr              # Single list where each item in the list is a strin
 #%% Create wordcloud 
 # remove troubelsome words/phrases
 plot_words = []
-trouble_list = ['greet', 'initial', 'name', 'expire', 'session', \
-                'thomas', 'ann', 'rat', 'sridev']
+
 for i in narratives_word_list:
     if i in trouble_list:
         pass
@@ -321,7 +215,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
 #%% All words. 
-wordcloud = WordCloud(width=500, height=500, background_color='white').generate(plot_words) 
+wordcloud = WordCloud(width=500, height=500, background_color='white').generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
@@ -329,23 +223,18 @@ plt.margins(x=0, y=0)
 plt.show()
 
 #%% Just top 100 words. 
-wordcloud = WordCloud(width=500, height=500, background_color='black', max_words=50).generate(plot_words) 
+wordcloud = WordCloud(width=500, height=500, background_color='white', max_words=50).generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
 plt.margins(x=0, y=0)
 plt.show()
 
-#%% Create cumulative frequency distribution of top 30 words
-import matplotlib as plt
-fdist = nltk.FreqDist(plot_words)
-fdist.plot(30, cumulative = False, marker='o', color='k')
-
 #%% Sentiment Analysis on the raw input
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 raw_sentiment_score = []
 
-for sentence in data['Interaction']:
+for sentence in data['body_text']:
     ss = SentimentIntensityAnalyzer().polarity_scores(sentence)
     raw_sentiment_score.append(ss)
 
@@ -353,18 +242,6 @@ raw_sent_df = pd.DataFrame(raw_sentiment_score)
 raw_sent_df = raw_sent_df.rename(columns={'neg':'raw_neg', 'neu':'raw_neu', \
                                   'pos':'raw_pos', 'compound':'raw_compound'})
 raw_sent_df
-
-#%% Sentiment Analysis on the raw sentences with garbage removed
-cleaner_sentiment_score = []
-
-for sentence in narratives:
-    ss = SentimentIntensityAnalyzer().polarity_scores(sentence)
-    cleaner_sentiment_score.append(ss)
-
-cleaner_sent_df = pd.DataFrame(cleaner_sentiment_score)
-cleaner_sent_df = cleaner_sent_df.rename(columns={'neg':'cleaner_neg', 'neu':'cleaner_neu', \
-                                  'pos':'cleaner_pos', 'compound':'cleaner_compound'})
-cleaner_sent_df
 
 #%% Sentiment Analysis on the lemmatized and cleaned sentences
 lemmed_sentiment_score = []
@@ -374,20 +251,20 @@ for sentence in clean_ind_narr:
     lemmed_sentiment_score.append(ss)
 
 lemmed_sent_df = pd.DataFrame(lemmed_sentiment_score)
-lemmed_sent_df = lemmed_sent_df.rename(columns={'neg':'lemmed_neg', 'neu':'lemmed_neu', \
-                                  'pos':'lemmed_pos', 'compound':'lemmed_compound'})
+lemmed_sent_df = lemmed_sent_df.rename(columns={'neg':'cleaned_neg', 'neu':'cleaned_neu', \
+                                  'pos':'cleaned_pos', 'compound':'cleaned_compound'})
 lemmed_sent_df
 
 #%% Add the above to the data df
-data = pd.concat([data, raw_sent_df, cleaner_sent_df, lemmed_sent_df], axis=1)
+data = pd.concat([data, raw_sent_df, lemmed_sent_df], axis=1)
 data.to_csv("all_data.csv")
-data[::100]
+data[:]
 
 #%% Doughnut plot of sentiment
 # Data
-neg_sum = sent_df['raw_neg'].sum()
-neu_sum = sent_df['raw_neu'].sum()
-pos_sum = sent_df['raw_pos'].sum()
+neg_sum = data['raw_neg'].sum()
+neu_sum = data['raw_neu'].sum()
+pos_sum = data['raw_pos'].sum()
 tot = neg_sum + neu_sum + pos_sum
 sent_prop = [round((neg_sum/tot)*100, 2), round((neu_sum/tot)*100, 2), round((pos_sum/tot)*100, 2)]
 
@@ -422,31 +299,14 @@ plt.show()
 #%% Hist of raw compound scores
 def hist_plot(df, title):
     fig = plt.subplots(figsize=(7, 7))
-    plt.hist(df, bins=15, color='#009FAE', edgecolor='k')
-    plt.yscale('log')
+    plt.hist(df, bins=5, color='k', edgecolor='k')
     plt.xlim(-1, 1)
-    plt.ylabel('Number of User Inputs', fontsize=30)
+    plt.ylabel('Number of Statements, fontsize=30')
     plt.xticks([-1, 0, 1], fontsize=18, labels=['Negative', 'Neutral', 'Positive'])
     plt.yticks(fontsize=18)
     plt.title(title, fontsize=24)
-    plt.yticks([1, 10, 100, 1000, 10000], fontsize=18, labels=['', '10', '100', '1000', '10000'])
     plt.show()
 
 #%% All sentiment
 hist_plot(data['raw_compound'], 'Raw Input: All') # All sentiment raw
-hist_plot(data['cleaner_compound'], 'Cleaner Input: All') # All senitment cleaner
-hist_plot(data['lemmed_compound'], 'Lemmatized Input: All') # All senitment lemmatized
-
-#%% Separate into just user and just bot plots
-user_data = data.loc[data['type_name']=='user']
-bot_data = data.loc[data['type_name']=='bot']
-
-# Plot user
-hist_plot(user_data['raw_compound'], 'Raw Input: User') # All sentiment raw
-hist_plot(user_data['cleaner_compound'], 'Cleaner Input: User') # All senitment cleaner
-hist_plot(user_data['lemmed_compound'], 'Lemmatized Input: User') # All senitment lemmatized
-
-# Plot bot
-hist_plot(bot_data['raw_compound'], 'Raw Input: Bot') # All sentiment raw
-hist_plot(bot_data['cleaner_compound'], 'Cleaner Input: Bot') # All senitment cleaner
-hist_plot(bot_data['lemmed_compound'], 'Lemmatized Input: Bot') # All senitment lemmatized
+hist_plot(data['cleaned_compound'], 'Lemmatized Input: All') # All senitment lemmatized
