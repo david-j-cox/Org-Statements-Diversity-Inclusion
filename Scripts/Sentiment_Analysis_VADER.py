@@ -15,25 +15,22 @@ import numpy as np
 import sys
 import re, string, unicodedata
 import matplotlib.pyplot as plt
-sys.path.append('Users/davidjcox/Dropbox/Coding/Local Python Modules/')
+sys.path.append('/Users/davidjcox/Dropbox/Coding/Local Python Modules/')
 
 # Set path to data
-os.chdir('Users/davidjcox/Dropbox/Projects/CurrentProjectManuscripts/Empirical/PersonalFun/Org_Statements_Diversity/Org-Statements-Diversity-Inclusion/Data/')
+os.chdir('/Users/davidjcox/Dropbox/Projects/CurrentProjectManuscripts/Empirical/PersonalFun/Org_Statements_Diversity/Org-Statements-Diversity-Inclusion/Data')
 
 # Change settings to view all columns of data
 pd.set_option('display.max_columns', None)
 
 #%% Import data.
-raw_data = pd.read_csv('data_for_sentiment_analysis.csv', low_memory=False) #All data.
+raw_data = pd.read_csv('all_data.csv').drop(['Unnamed: 0'], axis=1)
 data = raw_data.copy()
-bot_data = data[data['type_name']=='bot']
-bot_data = bot_data.reset_index()
-bot_data = bot_data.drop(['index'], axis=1)
-user_data = data[data['type_name']=='user']
-user_data = user_data.reset_index()
-user_data = user_data.drop(['index'], axis=1)
-print("User Data\n", user_data.head())
-print("Bot Data\n", bot_data.head())
+data
+
+#%% We have two columns with the text we're interested in playing with. Let's separate those out
+title_text = data['title_tex']
+body_text = data['body_text']
 
 #%% It looks like bot code is enclosed by '[{...}]'. Let's remove these from the df
 cleaned_interaction = []
