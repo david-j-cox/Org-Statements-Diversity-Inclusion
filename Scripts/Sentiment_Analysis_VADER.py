@@ -28,10 +28,6 @@ raw_data = pd.read_csv('all_data.csv').drop(['Unnamed: 0'], axis=1)
 data = raw_data.copy()
 data
 
-#%% We have two columns with the text we're interested in playing with. Let's separate those out
-title_text = data['title_tex']
-body_text = data['body_text']
-
 #%% It looks like bot code is enclosed by '[{...}]'. Let's remove these from the df
 cleaned_interaction = []
 
@@ -153,7 +149,7 @@ data['cleaned_interaction'] = cleaned_interaction
 
 #%% Start with (1) narratives:
 #   Single list where each item in the list is the raw string of the narrative for that participant. 
-narratives = data['cleaned_interaction'] # Create a list of the narratives.
+narratives = data['body_text'] # Create a list of the narratives.
 
 #%% Next we'll get (2), narratives_sent_tokenized:
 #     List of lists with one list per subject, and each item in list is a sentence from their narrative. 
@@ -251,7 +247,7 @@ for list in stem_narratives:
 
 narr_all_words = ' '.join(narratives_word_list)
 
-len(narratives_word_list) # Should be 70,616 total words.
+len(narratives_word_list) # Should be 4038 total words.
 
 #%% Next we'll get (5) narrative_vocab:
 #   Single list of the vocabulary used throughout all narratives (i.e., omitting all redundancies from (4)).
@@ -263,7 +259,7 @@ narrative_vocab = []
 for word in narratives_word_list:
     if word not in narrative_vocab:
         narrative_vocab.append(word)
-print("Number of words in vocab:", len(narrative_vocab)) # Should be 1521 unique words in our vocab. 
+print("Number of words in vocab:", len(narrative_vocab)) # Should be 1373 unique words in our vocab. 
 sorted_vocab = sorted(narrative_vocab)
 unique_words = np.unique(sorted_vocab) # Look at every 100th word in the vocab set. 
 
@@ -275,8 +271,8 @@ narr_as_string = []
 
 # Join all of the words into single string. 
 narr_as_string = ' '.join(narratives_word_list)
-print("Number of characters total:", len(narr_as_string)) # Should be 119,120 characters in this string. 
-narr_as_string[:198] # Look at the first 198 characters of this string. 
+print("Number of characters total:", len(narr_as_string)) # Should be 31,973 characters in this string. 
+narr_as_string[:198] # Look at the first 300 characters of this string. 
 
 #%% Finally, we'll get (7) clean_ind_narr:
 #     Single list where each item in the list is a string of the participant narratives with only clean words. 
@@ -285,7 +281,7 @@ for list in clean_words_tokenized:
     sub_clean_narr = ' '.join(list)
     clean_ind_narr.append(sub_clean_narr)
 data['cleaned_sentences'] = clean_ind_narr
-print("Number of total user inputs", len(clean_ind_narr))
+print("Number of total statements", len(clean_ind_narr))
 print(clean_ind_narr[::500])
 
 #%% ===========================================================================
@@ -303,8 +299,7 @@ clean_ind_narr              # Single list where each item in the list is a strin
 #%% Create wordcloud 
 # remove troubelsome words/phrases
 plot_words = []
-trouble_list = ['greet', 'initial', 'name', 'expire', 'session', \
-                'thomas', 'ann', 'rat', 'sridev']
+
 for i in narratives_word_list:
     if i in trouble_list:
         pass
@@ -318,7 +313,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
 #%% All words. 
-wordcloud = WordCloud(width=500, height=500, background_color='white').generate(plot_words) 
+wordcloud = WordCloud(width=500, height=500, background_color='white').generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
@@ -326,7 +321,7 @@ plt.margins(x=0, y=0)
 plt.show()
 
 #%% Just top 100 words. 
-wordcloud = WordCloud(width=500, height=500, background_color='black', max_words=50).generate(plot_words) 
+wordcloud = WordCloud(width=500, height=500, background_color='black', max_words=50).generate(narr_all_words) 
 plt.figure()
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
